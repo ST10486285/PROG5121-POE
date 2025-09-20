@@ -27,7 +27,7 @@ public class ChatApp {
     private static final List<String> messageIDs = new ArrayList<>();
     
     public static void main(String[] args) {
-        System.out.println("✨ WELCOME TO QUICKCHAT APPLICATION ✨");
+        System.out.println("✨ WELCOME TO ChatApp ✨");
         System.out.println("=".repeat(40));
         
         // Load messages from previous session if available
@@ -68,13 +68,19 @@ public class ChatApp {
                     generateReports();
                     break;
                 case 10:
+                    loadTestData();
+                    break;
+                case 11:
+                    runUnitTests();
+                    break;
+                case 12:
                     // Save messages before exiting
                     saveMessagesToJSON();
                     running = false;
                     System.out.println("Thank you for using QuickChat! Goodbye! 👋");
                     break;
                 default:
-                    System.out.println("❌ Invalid option. Please choose 1-10.");
+                    System.out.println("❌ Invalid option. Please choose 1-12.");
             }
             
             System.out.println("\n" + "=".repeat(40));
@@ -95,8 +101,10 @@ public class ChatApp {
         System.out.println("7. Message Statistics");
         System.out.println("8. Manage Messages");
         System.out.println("9. Generate Reports");
-        System.out.println("10. Exit");
-        System.out.print("Choose an option (1-10): ");
+        System.out.println("10. Load Test Data");
+        System.out.println("11. Run Unit Tests");
+        System.out.println("12. Exit");
+        System.out.print("Choose an option (1-12): ");
     }
     
     /**
@@ -214,7 +222,7 @@ public class ChatApp {
     
     /**
      * MESSAGE SENDING METHOD
-     * Handles the message sending workflow and populates all arrays
+     * Handles the message sending workflow without Scanner conflicts
      */
     private static void sendMessages() {
         if (loginSystem.getStoredUsername().isEmpty()) {
@@ -226,23 +234,30 @@ public class ChatApp {
         System.out.println("📨 MESSAGE SENDING SYSTEM");
         System.out.println("=".repeat(50));
         
-        scanner.nextLine(); // Clear buffer
+        // Create a separate scanner for message input to avoid conflicts
+        Scanner messageScanner = new Scanner(System.in);
+        
         System.out.print("How many messages do you want to send? ");
         
         int numMessages;
         try {
-            numMessages = scanner.nextInt();
-            scanner.nextLine(); // Clear buffer
+            numMessages = messageScanner.nextInt();
+            messageScanner.nextLine(); // Clear buffer
         } catch (Exception e) {
             System.out.println("❌ Invalid number. Please enter a valid integer.");
+            messageScanner.close();
             return;
         }
         
         int successfulMessages = 0;
         
         for (int i = 1; i <= numMessages; i++) {
+            System.out.println("\n" + "=".repeat(40));
+            System.out.println("CREATING MESSAGE #" + i);
+            System.out.println("=".repeat(40));
+            
             Message message = new Message();
-            boolean success = message.createMessage(loginSystem, allMessages.size() + 1);
+            boolean success = createMessageManual(message, i, messageScanner);
             
             if (success) {
                 // Add to appropriate arrays
@@ -264,18 +279,87 @@ public class ChatApp {
             } else {
                 System.out.println("❌ Message #" + i + " failed. Skipping...");
             }
-            
-            System.out.println("-".repeat(40));
         }
         
         // Save messages after sending
         saveMessagesToJSON();
         
-        System.out.println("📊 MESSAGING SUMMARY:");
+        System.out.println("\n📊 MESSAGING SUMMARY:");
         System.out.println("Total attempted: " + numMessages);
         System.out.println("Successful: " + successfulMessages);
         System.out.println("Total sent messages: " + sentMessages.size());
         System.out.println("Total all messages: " + allMessages.size());
+        
+        messageScanner.close();
+    }
+    
+    /**
+     * MANUAL MESSAGE CREATION - Handles input without using Message.createMessage()
+     */
+    private static boolean createMessageManual(Message message, int messageNum, Scanner messageScanner) {
+        // Get recipient number
+        System.out.print("Enter recipient's cell number (+27 format): ");
+        String recipientInput = messageScanner.nextLine();
+        
+        String recipientValidation = message.checkRecipientCell(recipientInput, loginSystem);
+        if (!recipientValidation.contains("successfully")) {
+            System.out.println("❌ " + recipientValidation);
+            return false;
+        }
+        message.setRecipient(recipientInput);
+        
+        // Get message text
+        System.out.print("Enter your message (max 250 chars): ");
+        String messageInput = messageScanner.nextLine();
+        
+        String messageValidation = message.checkMessageLength(messageInput);
+        if (!messageValidation.contains("ready to send")) {
+            System.out.println("❌ " + messageValidation);
+            return false;
+        }
+        message.setMessageText(messageInput);
+        
+        // Generate message ID and hash
+        message.generateMessageID();
+        message.createMessageHash(messageNum);
+        
+        // Handle send/store/disregard
+        System.out.println("\n📨 MESSAGE OPTIONS:");
+        System.out.println("1. Send Message");
+        System.out.println("2. Store Message");
+        System.out.println("3. Disregard Message");
+        System.out.print("Choose an option (1-3): ");
+        
+        int choice;
+        try {
+            choice = messageScanner.nextInt();
+            messageScanner.nextLine(); // Clear buffer
+        } catch (Exception e) {
+            choice = 0;
+        }
+        
+        switch (choice) {
+            case 1:
+                message.setStatus("Sent");
+                System.out.println("Message status: SENT");
+                break;
+            case 2:
+                message.setStatus("Stored");
+                System.out.println("Message status: STORED");
+                break;
+            case 3:
+                message.setStatus("Disregarded");
+                System.out.println("Message status: DISREGARDED");
+                break;
+            default:
+                message.setStatus("Disregarded");
+                System.out.println("Invalid choice. Message disregarded.");
+        }
+        
+        // Display details
+        message.displayMessageDetails();
+        
+        return true;
     }
     
     /**
@@ -407,6 +491,96 @@ public class ChatApp {
             System.out.println("❌ No message found with ID: " + searchID);
         }
     }
+    
+    /**
+ * LOADS TEST DATA FROM ASSIGNMENT SPECIFICATION
+ * Populates arrays with the required test messages
+ */
+private static void loadTestData() {
+    System.out.println("\n" + "=".repeat(60));
+    System.out.println("📋 LOADING TEST DATA FROM ASSIGNMENT");
+    System.out.println("=".repeat(60));
+    
+    // Clear existing data to start fresh
+    allMessages.clear();
+    sentMessages.clear();
+    storedMessages.clear();
+    disregardedMessages.clear();
+    messageHashes.clear();
+    messageIDs.clear();
+    
+    // Test Data Message 1: +27834557896 | "Did you get the cake?" | Sent
+    Message msg1 = new Message();
+    msg1.setMessageID("1000000001");
+    msg1.setMessageHash("10:1:DIDCAKE");
+    msg1.setRecipient("+27834557896");
+    msg1.setMessageText("Did you get the cake?");
+    msg1.setStatus("Sent");
+    addTestMessageToArrays(msg1);
+    
+    // Test Data Message 2: +27838884567 | Long message | Stored
+    Message msg2 = new Message();
+    msg2.setMessageID("1000000002");
+    msg2.setMessageHash("10:2:WHERETIME");
+    msg2.setRecipient("+27838884567");
+    msg2.setMessageText("Where are you? You are late! I have asked you to be on time.");
+    msg2.setStatus("Stored");
+    addTestMessageToArrays(msg2);
+    
+    // Test Data Message 3: +27834484567 | "Yohoooo, I am at your gate." | Disregarded
+    Message msg3 = new Message();
+    msg3.setMessageID("1000000003");
+    msg3.setMessageHash("10:3:YOHOOGATE");
+    msg3.setRecipient("+27834484567");
+    msg3.setMessageText("Yohoooo, I am at your gate.");
+    msg3.setStatus("Disregarded");
+    addTestMessageToArrays(msg3);
+    
+    // Test Data Message 4: 0838884567 | "It is dinner time!" | Sent (invalid format)
+    Message msg4 = new Message();
+    msg4.setMessageID("1000000004");
+    msg4.setMessageHash("10:4:ITTIME");
+    msg4.setRecipient("0838884567");
+    msg4.setMessageText("It is dinner time!");
+    msg4.setStatus("Sent");
+    addTestMessageToArrays(msg4);
+    
+    // Test Data Message 5: +27838884567 | "Ok, I am leaving without you." | Stored
+    Message msg5 = new Message();
+    msg5.setMessageID("1000000005");
+    msg5.setMessageHash("10:5:OKYOU");
+    msg5.setRecipient("+27838884567");
+    msg5.setMessageText("Ok, I am leaving without you.");
+    msg5.setStatus("Stored");
+    addTestMessageToArrays(msg5);
+    
+    System.out.println("✅ Test data loaded successfully!");
+    System.out.println("Total messages: " + allMessages.size());
+    System.out.println("Sent: " + sentMessages.size() + " | Stored: " + storedMessages.size() + 
+                      " | Disregarded: " + disregardedMessages.size());
+}
+
+/**
+ * HELPER METHOD: Adds a test message to all appropriate arrays
+ */
+private static void addTestMessageToArrays(Message message) {
+    allMessages.add(message);
+    messageIDs.add(message.getMessageID());
+    messageHashes.add(message.getMessageHash());
+    
+    switch (message.getStatus()) {
+        case "Sent":
+            sentMessages.add(message);
+            break;
+        case "Stored":
+            storedMessages.add(message);
+            break;
+        case "Disregarded":
+            disregardedMessages.add(message);
+            break;
+    }
+}
+    
     
     /**
      * SEARCHES MESSAGES BY RECIPIENT
@@ -603,6 +777,27 @@ public class ChatApp {
             System.out.println("✅ Messages loaded successfully into application");
         }
     }
+    
+    /**
+ * RUNS ALL UNIT TESTS
+ */
+private static void runUnitTests() {
+    System.out.println("\n" + "=".repeat(60));
+    System.out.println("🔬 RUNNING COMPREHENSIVE UNIT TESTS");
+    System.out.println("=".repeat(60));
+    
+    // Run Login tests
+    LoginTest loginTest = new LoginTest();
+    loginTest.runAllLoginTests();
+    
+    // Run Message tests
+    MessageTest messageTest = new MessageTest();
+    messageTest.runAllMessageTests();
+    
+    System.out.println("=".repeat(60));
+    System.out.println("ALL UNIT TESTS COMPLETED");
+    System.out.println("=".repeat(60));
+}
     
     // Helper methods for password analysis
     private static boolean containsCapital(String str) {
