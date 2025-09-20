@@ -11,6 +11,13 @@ package prog5121;
  * It contains methods for username, password, and cell phone number validation/Confirmation.
  */
 
+
+/**
+ * Reference: OpenAI. (2023). ChatGPT (September 25 version) [Large language model].
+ *            https://chat.openai.com/chat
+ */
+
+
 public class Login {
     // User information storage, these strings will store the registered user's information.
     private String username;

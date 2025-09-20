@@ -11,6 +11,14 @@ package prog5121;
  * and complete message management with JSON storage and reporting features.
  */
 
+/**
+ * References: 
+ * - OpenAI. (2023). ChatGPT (September 25 version) [Large language model].
+ *   https://chat.openai.com/chat
+ * - JSON.org. (2023). JSON Java Library (Version 20231013) [Software library].
+ *   https://github.com/stleary/JSON-java
+ */
+
 import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.List;

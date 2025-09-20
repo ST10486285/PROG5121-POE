@@ -20,6 +20,16 @@ import org.json.JSONObject;
  * This class contains methods for message validation, hash creation, message operations, and JSON storage.
  * @author Chumisa Haya
  */
+
+/**
+ * References: 
+ * - OpenAI. (2023). ChatGPT (September 25 version) [Large language model].
+ *   https://chat.openai.com/chat
+ * - JSON.org. (2023). JSON Java Library (Version 20231013) [Software library].
+ *   https://github.com/stleary/JSON-java
+ */
+
+
 public class Message {
     // Message properties
     private String messageID;
